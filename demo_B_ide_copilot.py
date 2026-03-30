@@ -17,18 +17,37 @@ Prerequisites:
 
 Base:
     base(3.12.7) - Conda env
+   /Users/tomazkastrun/opt/anaconda3/bin/python -m  pip install azure-identity
+    az login
 =============================================================================
 """
 
-import os, json, time, textwrap
+import os
+import json
+import time
+import textwrap
 from openai import AzureOpenAI
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+import os
+
+load_dotenv()
+
+# Use Azure AD token instead of API key
+credential = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(
+    credential, "https://cognitiveservices.azure.com/.default"
+)
 
 client = AzureOpenAI(
     azure_endpoint=os.environ["AZURE_OAI_ENDPOINT"],
-    api_key=os.environ["AZURE_OAI_KEY"],
+    azure_ad_token_provider=token_provider,
     api_version="2024-02-01",
 )
-MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o")
+MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o-mini")
+
 
 
 def ask(system: str, user: str, max_tokens: int = 600) -> tuple[str, float]:
@@ -67,14 +86,14 @@ def demo_intent_to_code():
     results = []
     for intent in INTENTS:
         print(f"\n{'─'*60}")
-        print(f"📝 Intent:\n{intent}")
+        print(f" Intent:\n{intent}")
         code, elapsed = ask(COPILOT_SYSTEM, intent, max_tokens=500)
         lines = len([l for l in code.split("\n") if l.strip()])
         print(f"\n⚡ Generated in {elapsed}s  ({lines} non-empty lines):")
         print(code[:400] + ("..." if len(code) > 400 else ""))
         results.append({"intent": intent[:60], "lines": lines, "seconds": elapsed})
 
-    print("\n\n📊 Productivity Summary:")
+    print("\n\n Productivity Summary:")
     print(f"{'Intent':<62} {'Lines':>6} {'Time':>7}")
     print("─"*78)
     for r in results:
@@ -211,9 +230,9 @@ def demo_azure_sdk_gen():
 # Main
 # ---------------------------------------------------------------------------
 def run():
-    print("█" * 65)
+
     print("  DEMO B: IDE COPILOT PRODUCTIVITY BENCHMARK")
-    print("█" * 65)
+ 
 
     demo_intent_to_code()
     demo_explain()

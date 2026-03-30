@@ -12,7 +12,11 @@ Shows:
   4. Azure milestone overlay with ds impact scoring
 
 Prerequisites:
-    pip install plotly openai pandas python-dotenv
+    /opt/anaconda3/bin/python -m pip install plotly openai pandas python-dotenv
+Local env.:
+    base (3.13.9)
+/opt/anaconda3/bin/python -c "import pandas; print(pandas.__version__)"
+conda install pandas
 =============================================================================
 """
 
@@ -21,6 +25,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from openai import AzureOpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 client = AzureOpenAI(
     azure_endpoint=os.environ["AZURE_OAI_ENDPOINT"],
@@ -45,7 +52,7 @@ MILESTONES = [
     {"year": 2021.0, "event": "DALL-E / CLIP",        "era": "Scaling",    "impact": 6,  "azure": False, "detail": "Multimodal foundation models. Text-to-image changed creative workflows."},
     {"year": 2021.5, "event": "Codex / GitHub Copilot","era": "Scaling",   "impact": 8,  "azure": True,  "detail": "Code generation became real. GitHub Copilot launched as first mass-market LLM product."},
     {"year": 2022.0, "event": "Azure OpenAI Preview",  "era": "Scaling",   "impact": 7,  "azure": True,  "detail": "Azure made GPT-3 available in a private preview. Enterprise data science changed."},
-    {"year": 2022.7, "event": "ChatGPT 🚀",            "era": "RLHF",      "impact": 10, "azure": False, "detail": "100M users in 60 days. RLHF made LLMs reliably instruction-following. The inflection point."},
+    {"year": 2022.7, "event": "ChatGPT   ",            "era": "RLHF",      "impact": 10, "azure": False, "detail": "100M users in 60 days. RLHF made LLMs reliably instruction-following. The inflection point."},
     {"year": 2022.9, "event": "Stable Diffusion",      "era": "Scaling",   "impact": 6,  "azure": False, "detail": "Open-source image generation. Democratised generative art and data augmentation."},
     # RLHF Era
     {"year": 2023.1, "event": "GPT-4",                "era": "RLHF",      "impact": 9,  "azure": True,  "detail": "Multimodal (vision). Available on Azure OpenAI. Became DS coding assistant standard."},
@@ -176,22 +183,21 @@ Answer in 3-5 sentences, referencing specific milestones by name."""
 # 5. Main
 # ---------------------------------------------------------------------------
 def run():
-    print("█" * 65)
     print("  DEMO A: GenAI TIMELINE EXPLORER")
-    print("█" * 65)
+ 
 
     # Build and save timeline
     fig = build_timeline()
     fig.write_html("genai_timeline.html")
-    print("\n✅ Saved: genai_timeline.html — open in browser for interactive view")
+    print("\n Saved: genai_timeline.html — open in browser for interactive view")
     fig.write_image("genai_timeline.png", width=1200, height=600, scale=1.5)
-    print("✅ Saved: genai_timeline.png")
+    print(" Saved: genai_timeline.png")
 
     # Era analyses
     print("\n--- ERA-BY-ERA ANALYSIS (Azure OpenAI GPT-4o) ---\n")
     for era in ERA_COLORS:
         print(f"\n{'='*55}")
-        print(f"📍 {era.upper()} ERA")
+        print(f" {era.upper()} ERA")
         print('='*55)
         analysis = analyse_era(era)
         print(analysis)
@@ -204,12 +210,12 @@ def run():
     ]
     print("\n\n--- MILESTONE Q&A ---")
     for q in sample_questions:
-        print(f"\n❓ {q}")
-        print(f"💬 {milestone_qa(q)}")
+        print(f"\n {q}")
+        print(f" {milestone_qa(q)}")
 
     # Export summary CSV
     df.to_csv("genai_milestones.csv", index=False)
-    print("\n✅ Saved: genai_milestones.csv")
+    print("\n Saved: genai_milestones.csv")
 
 
 if __name__ == "__main__":
