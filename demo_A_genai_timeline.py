@@ -20,7 +20,8 @@ conda install pandas
 =============================================================================
 """
 
-import os, json
+import os
+import json
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
