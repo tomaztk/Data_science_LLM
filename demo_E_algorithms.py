@@ -17,7 +17,9 @@ Prerequisites:
 =============================================================================
 """
 
-import os, json, time
+import os
+import json
+import time
 import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification
@@ -28,12 +30,23 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, classification_report
 import lightgbm as lgb
 from openai import AzureOpenAI
+from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+load_dotenv()
+
+# Use Azure AD token instead of API key
+credential = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(
+    credential, "https://cognitiveservices.azure.com/.default"
+)
 
 client = AzureOpenAI(
     azure_endpoint=os.environ["AZURE_OAI_ENDPOINT"],
-    api_key=os.environ["AZURE_OAI_KEY"],
+    azure_ad_token_provider=token_provider,
     api_version="2024-02-01",
 )
+
 MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o")
 
 ADVISOR_SYSTEM = """You are a principal ML engineer at a top data science team. 
@@ -85,7 +98,7 @@ def demo_algorithm_advisor():
 
     for problem in PROBLEM_DESCRIPTIONS:
         print(f"\n{'─'*60}")
-        print(f"🎯 Problem: {problem['name']}")
+        print(f" Problem: {problem['name']}")
         print(f"Description:{problem['desc']}")
 
         prompt = f"""
@@ -164,7 +177,7 @@ def demo_classical_benchmark():
         results.append({"model": name, "auc": auc, "train_time": train_time, "cv_auc": cv_scores.mean()})
 
     best = max(results, key=lambda r: r["auc"])
-    print(f"\n🏆 Best: {best['model']} (AUC={best['auc']:.4f})")
+    print(f"\n Best: {best['model']} (AUC={best['auc']:.4f})")
 
     # Ask GPT-4o to interpret results
     result_str = "\n".join([f"{r['model']}: AUC={r['auc']:.4f}, train={r['train_time']:.1f}s, CV={r['cv_auc']:.4f}" for r in results])
@@ -173,7 +186,7 @@ def demo_classical_benchmark():
         messages=[{"role": "user", "content": f"Interpret these churn model benchmark results for a 6% positive class dataset and recommend which to deploy:\n{result_str}"}],
         temperature=0.2, max_tokens=250,
     ).choices[0].message.content
-    print(f"\n💬 GPT-4o interpretation:\n{interpretation}")
+    print(f"\n GPT-4o-mini interpretation:\n{interpretation}")
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +238,7 @@ Respond as JSON: {{"params": {{...}}, "rationale": "..."}}"""
     model = lgb.LGBMClassifier(**safe_params, verbose=-1)
     model.fit(X_train, y_train, eval_set=[(X_test, y_test)])
     auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
-    print(f"\n✅ Model trained with LLM-suggested params → AUC: {auc:.4f}")
+    print(f"\n Model trained with LLM-suggested params → AUC: {auc:.4f}")
 
 
 # ---------------------------------------------------------------------------
@@ -246,7 +259,7 @@ def demo_decision_router():
     ]
 
     router_prompt_template = """
-Classify this ML problem and recommend the best approach for 2024.
+Classify this ML problem and recommend the best approach for 2025.
 
 Problem: {problem}
 
@@ -269,7 +282,7 @@ Respond as JSON: {{"category": "...", "recommended_approach": "...", "azure_serv
             response_format={"type": "json_object"},
         )
         result = json.loads(resp.choices[0].message.content)
-        print(f"❓ {case[:70]}...")
+        print(f" {case[:70]}...")
         print(f"   → {result['category']}: {result['recommended_approach']}")
         print(f"   Azure: {result['azure_service']}")
         print()

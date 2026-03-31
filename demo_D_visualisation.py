@@ -17,7 +17,11 @@ Prerequisites:
 =============================================================================
 """
 
-import os, json, base64, textwrap, io
+import os
+import json
+import base64
+import textwrap
+import io
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -27,12 +31,25 @@ import matplotlib.ticker as mtick
 import plotly.graph_objects as go
 from openai import AzureOpenAI
 
+from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+load_dotenv()
+
+# Use Azure AD token instead of API key
+credential = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(
+    credential, "https://cognitiveservices.azure.com/.default"
+)
+
 client = AzureOpenAI(
     azure_endpoint=os.environ["AZURE_OAI_ENDPOINT"],
-    api_key=os.environ["AZURE_OAI_KEY"],
+    azure_ad_token_provider=token_provider,
     api_version="2024-02-01",
 )
-MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o")
+MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o-mini")
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -95,9 +112,9 @@ def demo_nl_to_matplotlib():
                   "retention": retention, "cohort_sizes": cohort_sizes}
 
     for req in requests:
-        print(f"\n📝 Request: {req['request'][:80]}...")
+        print(f"\n Request: {req['request'][:80]}...")
         code = ask_for_code(req["request"] + f"\n\nData available: MONTHS={MONTHS}, revenue={list(revenue[:3])}... (12 items), churn_rate={list(churn_rate[:3])}... (12 items), retention=dict of cohorts with 6 months each.")
-        print(f"\n💻 Generated code ({len(code.split(chr(10)))} lines):")
+        print(f"\n Generated code ({len(code.split(chr(10)))} lines):")
         print(code[:400] + ("..." if len(code) > 400 else ""))
 
         plt.figure(figsize=(14, 5))
@@ -105,10 +122,10 @@ def demo_nl_to_matplotlib():
         if result == "OK":
             plt.savefig(req["fname"], dpi=120, bbox_inches="tight")
             plt.close()
-            print(f"✅ Saved: {req['fname']}")
+            print(f" Saved: {req['fname']}")
         else:
             plt.close()
-            print(f"⚠️  {result} — (fix prompt and retry in production)")
+            print(f"  {result} — (fix prompt and retry in production)")
 
 
 # ---------------------------------------------------------------------------
@@ -125,17 +142,17 @@ def demo_nl_to_plotly():
         "Use #0078D4 for bars, #D13438 for the churn line. Title: 'Revenue vs Churn Rate 2024'. "
         "Export as HTML to 'interactive_chart.html' using fig.write_html()."
     )
-    print(f"📝 Request: {request}")
+    print(f" Request: {request}")
 
     code = ask_for_code(request + f"\nData: MONTHS={MONTHS}, revenue (array, USD)={list(revenue)}, churn_rate (%, array)={list(churn_rate)}", style="Plotly")
-    print(f"\n💻 Generated code:\n{code[:500]}...")
+    print(f"\n Generated code:\n{code[:500]}...")
 
     local_vars = {"MONTHS": MONTHS, "revenue": revenue, "churn_rate": churn_rate}
     result = safe_exec(code, local_vars)
     if result == "OK":
-        print("✅ Saved: interactive_chart.html")
+        print(" Saved: interactive_chart.html")
     else:
-        print(f"⚠️  {result}")
+        print(f"  {result}")
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +187,7 @@ def demo_chart_to_narrative():
     ]
 
     for audience, instruction in audiences:
-        print(f"\n📊 Narrating chart for: {audience.upper()}")
+        print(f"\n Narrating chart for: {audience.upper()}")
         resp = client.chat.completions.create(
             model=MODEL,
             messages=[{"role": "user", "content": [
@@ -223,10 +240,10 @@ Keep it under 200 words. Write for a senior leadership team."""
     ).choices[0].message.content
 
     print(f"Input data: {json.dumps(report_data, indent=2)}")
-    print(f"\n📋 Auto-Generated Narrative:\n{'─'*60}")
+    print(f"\n Auto-Generated Narrative:\n{'─'*60}")
     print(narrative)
     print('─'*60)
-    print("\n💡 This runs on a schedule — every dashboard refresh generates fresh narrative.")
+    print("\n This runs on a schedule — every dashboard refresh generates fresh narrative.")
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +274,7 @@ Tables:
     )
 
     for req in dax_requests:
-        print(f"\n📝 Request: {req}")
+        print(f"\n Request: {req}")
         dax = client.chat.completions.create(
             model=MODEL,
             messages=[{"role": "system", "content": dax_system},
@@ -281,7 +298,7 @@ def run():
     demo_automated_narration()
     demo_dax_generation()
 
-    print("\n✅ All visualisation demos complete.")
+    print("\n All visualisation demos complete.")
     print("   Outputs: chart_revenue_churn.png, chart_cohort_heatmap.png,")
     print("            interactive_chart.html, chart_for_analysis.png")
 

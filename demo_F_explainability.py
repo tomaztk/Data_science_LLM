@@ -18,7 +18,9 @@ Prerequisites:
 =============================================================================
 """
 
-import os, json, textwrap
+import os
+import json
+import textwrap
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -30,13 +32,24 @@ from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 from openai import AzureOpenAI
+from dotenv import load_dotenv
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+load_dotenv()
+
+# Use Azure AD token instead of API key
+credential = DefaultAzureCredential()
+token_provider = get_bearer_token_provider(
+    credential, "https://cognitiveservices.azure.com/.default"
+)
 
 client = AzureOpenAI(
     azure_endpoint=os.environ["AZURE_OAI_ENDPOINT"],
-    api_key=os.environ["AZURE_OAI_KEY"],
+    azure_ad_token_provider=token_provider,
     api_version="2024-02-01",
 )
-MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o")
+
+MODEL = os.environ.get("AZURE_OAI_DEPLOY", "gpt-4o-mini")
 
 FEATURE_NAMES = [
     "tenure_months", "monthly_charges", "support_tickets_90d", "feature_usage_score",
@@ -66,7 +79,7 @@ def setup_model():
     model.fit(X_train, y_train)
 
     auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
-    print(f"\n✅ Model trained — AUC-ROC: {auc:.4f} | Positive rate: {y_test.mean():.1%}")
+    print(f"\n Model trained — AUC-ROC: {auc:.4f} | Positive rate: {y_test.mean():.1%}")
 
     explainer = shap.TreeExplainer(model)
     shap_values = explainer(X_test)
@@ -100,7 +113,7 @@ def demo_classical_shap(shap_values, X_test, preds_proba):
     plt.tight_layout()
     plt.savefig("shap_summary_f.png", dpi=120, bbox_inches="tight")
     plt.close()
-    print("\n✅ Saved: shap_summary_f.png")
+    print("\n Saved: shap_summary_f.png")
 
     # Local explanation for a high-risk customer
     high_risk_idx = np.argmax(preds_proba)
@@ -170,7 +183,7 @@ def demo_llm_as_judge(narratives: list[dict]):
     print("\n\n" + "═"*65)
     print("DEMO F-3: LLM-AS-JUDGE — Evaluate Narrative Quality")
     print("═"*65)
-    print("Using GPT-4o to score GPT-4o-generated narratives...\n")
+    print("Using GPT-4o-mini to score GPT-4o-generated narratives...\n")
 
     judge_system = (
         "You are a quality evaluator for AI-generated churn risk explanations. "
@@ -196,8 +209,8 @@ def demo_llm_as_judge(narratives: list[dict]):
     avg_overall = sum(s["overall"] for s in scores) / len(scores)
     avg_clarity = sum(s["clarity"] for s in scores) / len(scores)
     avg_action  = sum(s["actionability"] for s in scores) / len(scores)
-    print(f"\n📊 Mean scores — Overall: {avg_overall:.1f}  Clarity: {avg_clarity:.1f}  Actionability: {avg_action:.1f}")
-    print("💡 Use this as a prompt quality gate before sending narratives to account managers.")
+    print(f"\n Mean scores — Overall: {avg_overall:.1f}  Clarity: {avg_clarity:.1f}  Actionability: {avg_action:.1f}")
+    print(" Use this as a prompt quality gate before sending narratives to account managers.")
 
 
 # ---------------------------------------------------------------------------
@@ -280,10 +293,10 @@ Answer: {answer}
 Respond as JSON: {{"groundedness": 0-10, "hallucinations": ["list of unsupported claims"], "verdict": "Grounded | Partially Grounded | Hallucinated"}}"""
 
     for pair in test_pairs:
-        print(f"\n📋 Context: {pair['context'][:80]}...")
-        print(f"❓ Question: {pair['question']}\n")
+        print(f"\n Context: {pair['context'][:80]}...")
+        print(f"  Question: {pair['question']}\n")
 
-        for label, answer in [("✅ Good answer", pair["answer_good"]), ("❌ Hallucinated", pair["answer_hallucinated"])]:
+        for label, answer in [(" Good answer", pair["answer_good"]), (" Hallucinated", pair["answer_hallucinated"])]:
             resp = client.chat.completions.create(
                 model=MODEL,
                 messages=[{"role": "user", "content": eval_prompt_template.format(
