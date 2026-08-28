@@ -288,10 +288,8 @@ Tables:
 # Main
 # ---------------------------------------------------------------------------
 def run():
-    print("█" * 65)
     print("  DEMO D: LLM-POWERED DATA VISUALISATION")
-    print("█" * 65)
-
+   
     demo_nl_to_matplotlib()
     demo_nl_to_plotly()
     demo_chart_to_narrative()
