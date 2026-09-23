@@ -60,5 +60,5 @@ def prompt_llm(prompt: str) -> str:
     )
     return response.choices[0].message.content
 
-result = prompt_llm("What is the capital of France?")
+result = prompt_llm("V katerem mestu poteka NT konferenca2026?")
 print(result)
